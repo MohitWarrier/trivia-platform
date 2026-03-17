@@ -1,6 +1,6 @@
 # Trivia Platform
 
-Real-time multiplayer trivia game (Kahoot-style) built with Elixir, Phoenix LiveView, and OTP.
+Real-time multiplayer trivia game built with Elixir, Phoenix LiveView, and OTP.
 
 No sign-up required. One player creates a room, shares a 6-character code, others join and play in real-time through their browser.
 
@@ -61,30 +61,6 @@ Open 3 browser tabs:
 
 Each tab is an independent WebSocket connection, identical to 3 different computers.
 
-## Project structure
 
-```
-lib/
-  trivia_platform/
-    rooms/
-      room_server.ex      # GenServer per game room (state machine, timer, scoring)
-      room_registry.ex     # ETS-based room code -> PID lookup
-      room_code.ex         # 6-char code generator
-    questions.ex           # Read questions from DB
-    games.ex               # Save/load game results
-  trivia_platform_web/
-    live/
-      home_live.ex         # Landing page (create/join)
-      host_live.ex         # Host's control panel
-      play_live.ex         # Player's game view
-      results_live.ex      # Permanent results page
-```
 
-## Documentation
 
-- **[DOCS.md](DOCS.md)** - Full architecture documentation (start here)
-- **[FUTURE.md](FUTURE.md)** - Planned improvements and upgrade path
-
-## License
-
-MIT
