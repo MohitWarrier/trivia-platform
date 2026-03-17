@@ -2,12 +2,25 @@ defmodule TriviaPlatformWeb.PlayLive do
   use TriviaPlatformWeb, :live_view
 
   alias TriviaPlatform.Rooms.RoomServer
+  alias TriviaPlatform.Token
   alias TriviaPlatformWeb.Presence
 
   @impl true
   def mount(%{"code" => code} = params, _session, socket) do
     player_name = params["name"] || "Anonymous"
-    reconnect_id = params["player_id"]
+
+    # Verify signed token for reconnection (prevents player ID forgery)
+    reconnect_id =
+      case params["token"] do
+        nil ->
+          nil
+
+        token ->
+          case Token.verify(token) do
+            {:ok, player_id} -> player_id
+            {:error, _} -> nil
+          end
+      end
 
     socket =
       assign(socket,
@@ -16,6 +29,7 @@ defmodule TriviaPlatformWeb.PlayLive do
         player_name: player_name,
         player_id: nil,
         reconnect_id: reconnect_id,
+        reconnect_token: nil,
         phase: :joining,
         players: [],
         timer_seconds: 15,
@@ -65,6 +79,7 @@ defmodule TriviaPlatformWeb.PlayLive do
          assign(socket,
            player_id: player_id,
            player_name: name,
+           reconnect_token: Token.sign(player_id),
            phase: state.phase,
            players: state.players,
            total_questions: state.total_questions
@@ -78,6 +93,7 @@ defmodule TriviaPlatformWeb.PlayLive do
         {:noreply,
          assign(socket,
            player_id: player_id,
+           reconnect_token: Token.sign(player_id),
            phase: state.phase,
            players: state.players,
            total_questions: state.total_questions

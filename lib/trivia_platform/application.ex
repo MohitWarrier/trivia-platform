@@ -14,6 +14,7 @@ defmodule TriviaPlatform.Application do
       {Phoenix.PubSub, name: TriviaPlatform.PubSub},
       TriviaPlatform.Rooms.RoomRegistry,
       TriviaPlatform.Rooms.RateLimiter,
+      {Task.Supervisor, name: TriviaPlatform.TaskSupervisor},
       {DynamicSupervisor, name: TriviaPlatform.Rooms.RoomSupervisor, strategy: :one_for_one},
       TriviaPlatformWeb.Presence,
       TriviaPlatformWeb.Endpoint

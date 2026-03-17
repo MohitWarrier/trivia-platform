@@ -2,11 +2,23 @@ defmodule TriviaPlatformWeb.HostLive do
   use TriviaPlatformWeb, :live_view
 
   alias TriviaPlatform.Rooms.RoomServer
+  alias TriviaPlatform.Token
   alias TriviaPlatformWeb.Presence
 
   @impl true
   def mount(%{"code" => code} = params, _session, socket) do
-    host_id = params["host_id"]
+    # Verify signed token to extract host_id (prevents forgery)
+    host_id =
+      case params["token"] do
+        nil ->
+          nil
+
+        token ->
+          case Token.verify(token) do
+            {:ok, id} -> id
+            {:error, _} -> nil
+          end
+      end
 
     if connected?(socket) do
       Phoenix.PubSub.subscribe(TriviaPlatform.PubSub, "room:#{code}")

@@ -1,5 +1,6 @@
 defmodule TriviaPlatform.Rooms.RoomServer do
   use GenServer, restart: :transient
+  require Logger
 
   alias TriviaPlatform.Rooms.{RoomRegistry, RoomCode}
   alias TriviaPlatform.Questions
@@ -46,8 +47,24 @@ defmodule TriviaPlatform.Rooms.RoomServer do
     end
   end
 
-  def start_link({code, host_id, host_name, category, question_count}) do
-    GenServer.start_link(__MODULE__, {code, host_id, host_name, category, question_count})
+  def start_custom_room(host_name, questions) when is_list(questions) and length(questions) >= 3 do
+    host_name = host_name |> String.trim() |> String.slice(0, 20)
+
+    with {:ok, code} <- RoomCode.generate() do
+      host_id = generate_id()
+
+      case DynamicSupervisor.start_child(
+             TriviaPlatform.Rooms.RoomSupervisor,
+             {__MODULE__, {code, host_id, host_name, :custom, questions}}
+           ) do
+        {:ok, _pid} -> {:ok, code, host_id}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  def start_link({code, host_id, host_name, category, question_count_or_questions}) do
+    GenServer.start_link(__MODULE__, {code, host_id, host_name, category, question_count_or_questions})
   end
 
   def join(room_code, player_name) do
@@ -99,6 +116,21 @@ defmodule TriviaPlatform.Rooms.RoomServer do
   # ── Server Callbacks ──
 
   @impl true
+  def init({code, host_id, host_name, :custom, questions}) when is_list(questions) do
+    RoomRegistry.register(code, self())
+
+    state = %__MODULE__{
+      room_code: code,
+      host_id: host_id,
+      host_name: host_name,
+      category: "custom",
+      question_count: length(questions),
+      questions: questions
+    }
+
+    {:ok, state}
+  end
+
   def init({code, host_id, host_name, category, question_count}) do
     RoomRegistry.register(code, self())
 
@@ -165,24 +197,34 @@ defmodule TriviaPlatform.Rooms.RoomServer do
   end
 
   def handle_call({:start_game, host_id}, _from, %{phase: :waiting, host_id: host_id} = state) do
-    # Only count connected players
     connected_count = state.players |> Enum.count(fn {_id, p} -> p.connected end)
 
     if connected_count == 0 do
       {:reply, {:error, :no_players}, state}
     else
-      questions = Questions.get_random_questions(state.category, state.question_count)
+      # Custom rooms already have questions loaded from init
+      questions =
+        if state.questions != [] do
+          state.questions
+        else
+          Questions.get_random_questions(state.category, state.question_count)
+        end
 
-      if Enum.empty?(questions) do
-        {:reply, {:error, :no_questions}, state}
-      else
-        new_state =
-          %{state | questions: questions, started_at: DateTime.utc_now(), phase: :question}
-          |> reset_for_question()
-          |> start_timer()
+      cond do
+        Enum.empty?(questions) ->
+          {:reply, {:error, :no_questions}, state}
 
-        broadcast_question(new_state)
-        {:reply, :ok, new_state}
+        length(questions) < 3 ->
+          {:reply, {:error, :insufficient_questions}, state}
+
+        true ->
+          new_state =
+            %{state | questions: questions, started_at: DateTime.utc_now(), phase: :question}
+            |> reset_for_question()
+            |> start_timer()
+
+          broadcast_question(new_state)
+          {:reply, :ok, new_state}
       end
     end
   end
@@ -401,8 +443,10 @@ defmodule TriviaPlatform.Rooms.RoomServer do
     new_state = %{state | phase: :finished}
     scores = format_scores(all_players)
 
-    # Save to database
-    Task.start(fn -> save_game_to_db(state, all_players) end)
+    # Save to database under supervision
+    Task.Supervisor.start_child(TriviaPlatform.TaskSupervisor, fn ->
+      save_game_to_db(state, all_players)
+    end)
 
     broadcast(state.room_code, {:game_finished, %{final_scores: scores}})
 
@@ -442,8 +486,10 @@ defmodule TriviaPlatform.Rooms.RoomServer do
         Games.save_game_results(game, ranked_players)
         broadcast(state.room_code, {:game_saved, %{game_id: game.id}})
 
-      {:error, _changeset} ->
-        :ok
+      {:error, changeset} ->
+        Logger.error(
+          "Failed to save game for room #{state.room_code}: #{inspect(changeset.errors)}"
+        )
     end
   end
 

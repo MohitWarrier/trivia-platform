@@ -2,6 +2,7 @@ defmodule TriviaPlatformWeb.HomeLive do
   use TriviaPlatformWeb, :live_view
 
   alias TriviaPlatform.Questions
+  alias TriviaPlatform.Token
   alias TriviaPlatform.Rooms.{RoomServer, RoomRegistry, RateLimiter}
 
   @impl true
@@ -46,10 +47,12 @@ defmodule TriviaPlatformWeb.HomeLive do
       true ->
         case RoomServer.start_room(host_name, category, count) do
           {:ok, code, host_id} ->
+            host_token = Token.sign(host_id)
+
             {:noreply,
              socket
              |> put_session(:host_id, host_id)
-             |> push_navigate(to: ~p"/host/#{code}?host_id=#{host_id}")}
+             |> push_navigate(to: ~p"/host/#{code}?token=#{host_token}")}
 
           {:error, _reason} ->
             {:noreply, assign(socket, create_error: "Failed to create room. Try again.")}

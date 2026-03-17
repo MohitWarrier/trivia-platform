@@ -5,6 +5,7 @@ defmodule TriviaPlatformWeb.HostLiveTest do
 
   alias TriviaPlatform.Rooms.RoomServer
   alias TriviaPlatform.Questions.Question
+  alias TriviaPlatform.Token
 
   setup do
     for i <- 1..10 do
@@ -21,12 +22,13 @@ defmodule TriviaPlatformWeb.HostLiveTest do
     end
 
     {:ok, code, host_id} = RoomServer.start_room("Host", "science", 3)
-    %{code: code, host_id: host_id}
+    host_token = Token.sign(host_id)
+    %{code: code, host_id: host_id, host_token: host_token}
   end
 
   describe "mounting" do
-    test "renders waiting room with room code", %{conn: conn, code: code, host_id: host_id} do
-      {:ok, _view, html} = live(conn, ~p"/host/#{code}?host_id=#{host_id}")
+    test "renders waiting room with room code", %{conn: conn, code: code, host_token: host_token} do
+      {:ok, _view, html} = live(conn, ~p"/host/#{code}?token=#{host_token}")
 
       assert html =~ code
       assert html =~ "Share this code"
@@ -35,13 +37,13 @@ defmodule TriviaPlatformWeb.HostLiveTest do
 
     test "redirects to home if room not found", %{conn: conn} do
       assert {:error, {:live_redirect, %{to: "/"}}} =
-               live(conn, ~p"/host/ZZZZZZ?host_id=fake")
+               live(conn, ~p"/host/ZZZZZZ?token=fake")
     end
   end
 
   describe "player joining" do
-    test "shows player when they join", %{conn: conn, code: code, host_id: host_id} do
-      {:ok, view, _html} = live(conn, ~p"/host/#{code}?host_id=#{host_id}")
+    test "shows player when they join", %{conn: conn, code: code, host_token: host_token} do
+      {:ok, view, _html} = live(conn, ~p"/host/#{code}?token=#{host_token}")
 
       # Another player joins
       {:ok, _player_id} = RoomServer.join(code, "Alice")
@@ -57,9 +59,9 @@ defmodule TriviaPlatformWeb.HostLiveTest do
     test "start button is disabled with no players", %{
       conn: conn,
       code: code,
-      host_id: host_id
+      host_token: host_token
     } do
-      {:ok, _view, html} = live(conn, ~p"/host/#{code}?host_id=#{host_id}")
+      {:ok, _view, html} = live(conn, ~p"/host/#{code}?token=#{host_token}")
       assert html =~ "disabled"
       assert html =~ "Waiting for at least 1 player"
     end
@@ -67,9 +69,9 @@ defmodule TriviaPlatformWeb.HostLiveTest do
     test "clicking start transitions to question phase", %{
       conn: conn,
       code: code,
-      host_id: host_id
+      host_token: host_token
     } do
-      {:ok, view, _html} = live(conn, ~p"/host/#{code}?host_id=#{host_id}")
+      {:ok, view, _html} = live(conn, ~p"/host/#{code}?token=#{host_token}")
       {:ok, _} = RoomServer.join(code, "Alice")
       :timer.sleep(100)
 
@@ -84,7 +86,7 @@ defmodule TriviaPlatformWeb.HostLiveTest do
   end
 
   describe "game phases" do
-    setup %{code: code, host_id: _host_id} do
+    setup %{code: code} do
       {:ok, player_id} = RoomServer.join(code, "Alice")
       %{player_id: player_id}
     end
@@ -93,9 +95,10 @@ defmodule TriviaPlatformWeb.HostLiveTest do
       conn: conn,
       code: code,
       host_id: host_id,
+      host_token: host_token,
       player_id: _player_id
     } do
-      {:ok, view, _html} = live(conn, ~p"/host/#{code}?host_id=#{host_id}")
+      {:ok, view, _html} = live(conn, ~p"/host/#{code}?token=#{host_token}")
       :ok = RoomServer.start_game(code, host_id)
       :timer.sleep(200)
 
@@ -108,9 +111,10 @@ defmodule TriviaPlatformWeb.HostLiveTest do
       conn: conn,
       code: code,
       host_id: host_id,
+      host_token: host_token,
       player_id: player_id
     } do
-      {:ok, view, _html} = live(conn, ~p"/host/#{code}?host_id=#{host_id}")
+      {:ok, view, _html} = live(conn, ~p"/host/#{code}?token=#{host_token}")
       :ok = RoomServer.start_game(code, host_id)
       :timer.sleep(200)
 
