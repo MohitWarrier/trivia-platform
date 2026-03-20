@@ -14,6 +14,7 @@ defmodule TriviaPlatformWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive, :index
+    live "/create", CreateLive, :new
     live "/host/:code", HostLive, :show
     live "/play/:code", PlayLive, :show
     live "/results/:id", ResultsLive, :show

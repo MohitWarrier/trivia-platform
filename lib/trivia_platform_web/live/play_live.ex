@@ -73,31 +73,41 @@ defmodule TriviaPlatformWeb.PlayLive do
       {:reconnected, player_id} ->
         Phoenix.PubSub.subscribe(TriviaPlatform.PubSub, "room:#{code}")
         track_presence(socket, code, player_id, name)
-        state = RoomServer.get_state(code)
 
-        {:noreply,
-         assign(socket,
-           player_id: player_id,
-           player_name: name,
-           reconnect_token: Token.sign(player_id),
-           phase: state.phase,
-           players: state.players,
-           total_questions: state.total_questions
-         )}
+        case RoomServer.get_state(code) do
+          {:error, _} ->
+            {:noreply, socket |> put_flash(:error, "Room closed") |> push_navigate(to: ~p"/")}
+
+          state ->
+            {:noreply,
+             assign(socket,
+               player_id: player_id,
+               player_name: name,
+               reconnect_token: Token.sign(player_id),
+               phase: state.phase,
+               players: state.players,
+               total_questions: state.total_questions
+             )}
+        end
 
       {:ok, player_id} ->
         Phoenix.PubSub.subscribe(TriviaPlatform.PubSub, "room:#{code}")
         track_presence(socket, code, player_id, name)
-        state = RoomServer.get_state(code)
 
-        {:noreply,
-         assign(socket,
-           player_id: player_id,
-           reconnect_token: Token.sign(player_id),
-           phase: state.phase,
-           players: state.players,
-           total_questions: state.total_questions
-         )}
+        case RoomServer.get_state(code) do
+          {:error, _} ->
+            {:noreply, socket |> put_flash(:error, "Room closed") |> push_navigate(to: ~p"/")}
+
+          state ->
+            {:noreply,
+             assign(socket,
+               player_id: player_id,
+               reconnect_token: Token.sign(player_id),
+               phase: state.phase,
+               players: state.players,
+               total_questions: state.total_questions
+             )}
+        end
 
       {:error, :not_found} ->
         {:noreply,

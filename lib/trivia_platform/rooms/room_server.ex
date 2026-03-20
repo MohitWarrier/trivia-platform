@@ -47,7 +47,8 @@ defmodule TriviaPlatform.Rooms.RoomServer do
     end
   end
 
-  def start_custom_room(host_name, questions) when is_list(questions) and length(questions) >= 3 do
+  def start_custom_room(host_name, questions)
+      when is_list(questions) and length(questions) >= 3 do
     host_name = host_name |> String.trim() |> String.slice(0, 20)
 
     with {:ok, code} <- RoomCode.generate() do
@@ -64,7 +65,10 @@ defmodule TriviaPlatform.Rooms.RoomServer do
   end
 
   def start_link({code, host_id, host_name, category, question_count_or_questions}) do
-    GenServer.start_link(__MODULE__, {code, host_id, host_name, category, question_count_or_questions})
+    GenServer.start_link(
+      __MODULE__,
+      {code, host_id, host_name, category, question_count_or_questions}
+    )
   end
 
   def join(room_code, player_name) do

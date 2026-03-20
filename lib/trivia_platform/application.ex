@@ -17,6 +17,8 @@ defmodule TriviaPlatform.Application do
       {Task.Supervisor, name: TriviaPlatform.TaskSupervisor},
       {DynamicSupervisor, name: TriviaPlatform.Rooms.RoomSupervisor, strategy: :one_for_one},
       TriviaPlatformWeb.Presence,
+      {TriviaPlatform.Questions.AutoRefresh,
+       Application.get_env(:trivia_platform, :auto_refresh, enabled: false)},
       TriviaPlatformWeb.Endpoint
     ]
 

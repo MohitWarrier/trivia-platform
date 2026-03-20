@@ -1,0 +1,35 @@
+# Ignore build artifacts and dependencies
+/_build/
+/deps/
+/doc/
+/.elixir_ls/
+
+# Ignore node modules (if any)
+/assets/node_modules/
+
+# Ignore test files
+/test/
+
+# Ignore development config
+/config/dev.exs
+/config/test.exs
+
+# Ignore git
+.git
+.gitignore
+
+# Ignore Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Ignore editors
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Ignore docs
+/docs/
+AGENTS.md

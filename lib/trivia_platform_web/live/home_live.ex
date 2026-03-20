@@ -49,10 +49,7 @@ defmodule TriviaPlatformWeb.HomeLive do
           {:ok, code, host_id} ->
             host_token = Token.sign(host_id)
 
-            {:noreply,
-             socket
-             |> put_session(:host_id, host_id)
-             |> push_navigate(to: ~p"/host/#{code}?token=#{host_token}")}
+            {:noreply, push_navigate(socket, to: ~p"/host/#{code}?token=#{host_token}")}
 
           {:error, _reason} ->
             {:noreply, assign(socket, create_error: "Failed to create room. Try again.")}
@@ -176,6 +173,12 @@ defmodule TriviaPlatformWeb.HomeLive do
                 <.icon name="hero-rocket-launch-mini" class="size-5" /> Create Game
               </button>
             </.form>
+
+            <div class="divider text-base-content/30 text-xs">OR</div>
+
+            <.link navigate={~p"/create"} class="btn btn-outline btn-accent w-full gap-2">
+              <.icon name="hero-pencil-square-mini" class="size-5" /> Custom Questions
+            </.link>
           </div>
         </div>
 
@@ -246,8 +249,4 @@ defmodule TriviaPlatformWeb.HomeLive do
   defp category_display("entertainment"), do: "Entertainment"
   defp category_display("sports"), do: "Sports"
   defp category_display(cat), do: String.capitalize(cat)
-
-  defp put_session(socket, key, value) do
-    assign(socket, key, value)
-  end
 end

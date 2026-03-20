@@ -23,6 +23,12 @@ end
 config :trivia_platform, TriviaPlatformWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# Enable auto-refresh of questions from Open Trivia DB in production
+if config_env() == :prod do
+  config :trivia_platform,
+    auto_refresh: [enabled: true, interval_ms: 7 * 24 * 60 * 60 * 1000]
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

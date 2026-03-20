@@ -9,7 +9,8 @@ import Config
 
 config :trivia_platform,
   ecto_repos: [TriviaPlatform.Repo],
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  auto_refresh: [enabled: false]
 
 # Configure the endpoint
 config :trivia_platform, TriviaPlatformWeb.Endpoint,
